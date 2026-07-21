@@ -1,0 +1,1809 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SympathLink - 실시간 가상 & 물리 존재감 융합 소통 서비스</title>
+    <!-- Tailwind CSS for high-fidelity styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for modern icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter & Noto Sans KR -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <!-- Face-API.js for Browser-based Realtime Emotion Recognition -->
+    <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.9/dist/face-api.js"></script>
+    <!-- QRCode.js for generating QR code -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans KR', sans-serif;
+        }
+        /* Custom scrollbar for premium aesthetic */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.05);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(15, 23, 42, 0.2);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(15, 23, 42, 0.4);
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-tr from-slate-900 via-slate-800 to-indigo-950 min-h-screen text-slate-100 flex flex-col antialiased">
+
+    <!-- Top Navigation / Brand Bar -->
+    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50 px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+            <div class="bg-indigo-600 text-white p-2 rounded-xl shadow-lg shadow-indigo-500/30 flex items-center justify-center">
+                <i class="fa-solid fa-face-smile-wink text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-400 to-emerald-400 bg-clip-text text-transparent">SympathLink AI</h1>
+                <p class="text-xs text-slate-400 font-medium">실시간 물리·가상 존재감 동기화 멀티채팅</p>
+            </div>
+        </div>
+        
+        <div class="flex items-center space-x-3">
+            <!-- Share Invite Link Button -->
+            <button onclick="window.openInviteModal()" class="bg-emerald-600/90 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 active:scale-95 transition shadow-lg shadow-emerald-500/20">
+                <i class="fa-solid fa-key text-[10px]"></i>
+                <span>초대 코드 확인</span>
+            </button>
+            
+            <!-- Global State Indicator -->
+            <div id="ai-status-badge" class="flex items-center space-x-2 bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700 text-xs">
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping"></span>
+                <span id="ai-status-text" class="text-slate-300 font-semibold">서버 연동 초기화 중...</span>
+            </div>
+            <!-- Concept Info Modal Trigger -->
+            <button onclick="window.toggleModal('info-modal')" class="text-slate-400 hover:text-white transition duration-200">
+                <i class="fa-regular fa-circle-question text-xl"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        
+        <!-- Left Panel: Webcam Sensor & AI Customizer (5 Columns) -->
+        <section class="lg:col-span-5 flex flex-col space-y-6">
+            
+            <div class="bg-slate-900/60 border border-slate-800 rounded-3xl p-5 flex flex-col space-y-4 shadow-2xl relative">
+                
+                <div class="flex justify-between items-center border-b border-slate-800/60 pb-3">
+                    <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-video"></i> 실제 물리적 표정 센서 (Webcam)
+                    </span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="camera-toggle" class="sr-only peer" onchange="window.toggleWebcam(this)">
+                        <div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600 peer-checked:after:bg-white peer-checked:after:border-indigo-600"></div>
+                        <span class="ml-2 text-xs text-slate-400">웹캠 켜기</span>
+                    </label>
+                </div>
+
+                <!-- Webcam viewport with container -->
+                <div class="relative w-full aspect-video bg-slate-950/90 rounded-2xl border border-slate-800 overflow-hidden flex items-center justify-center shadow-inner group">
+                    <video id="webcam-video" autoplay muted playsinline class="absolute top-0 left-0 w-full h-full object-cover rounded-2xl transform -scale-x-100 opacity-60 hidden"></video>
+                    
+                    <!-- Overlay loading face api -->
+                    <div id="camera-placeholder" class="z-10 flex flex-col items-center justify-center text-center p-6 space-y-3">
+                        <div class="w-12 h-12 rounded-full bg-slate-900 flex items-center justify-center text-slate-500 border border-slate-800 group-hover:text-indigo-400 transition-colors duration-300">
+                            <i class="fa-solid fa-camera-retro text-xl"></i>
+                        </div>
+                        <div class="space-y-1">
+                            <p class="text-sm font-semibold text-slate-300">물리 표정 인식이 비활성화되었습니다</p>
+                            <p class="text-xs text-slate-500 max-w-[280px]">웹캠 토글을 켜면 웹 브라우저 내에서 AI 기반의 실시간 표정 측정이 시작됩니다.</p>
+                        </div>
+                    </div>
+
+                    <!-- Overlay Tracking Frame effect -->
+                    <div id="tracking-bracket" class="absolute inset-4 border border-dashed border-indigo-500/0 rounded-xl pointer-events-none transition-all duration-500 flex items-center justify-center">
+                        <span class="text-[10px] text-indigo-400 bg-slate-950/90 px-2 py-0.5 rounded border border-indigo-500/20 absolute top-2 left-2 opacity-0 transition-opacity" id="tracking-label">Face Lock</span>
+                    </div>
+                </div>
+
+                <!-- Custom Avatar Customizer (Face Color & Clothes) -->
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/60 flex flex-col justify-between">
+                        <label class="text-[10px] text-slate-400 font-semibold uppercase mb-1">내 아바타 피부 톤</label>
+                        <div class="flex space-x-1.5">
+                            <button onclick="window.changeFaceColor('#FFE0B2')" class="w-5 h-5 rounded-full border border-white/20" style="background-color: #FFE0B2;"></button>
+                            <button onclick="window.changeFaceColor('#F0C797')" class="w-5 h-5 rounded-full border border-white/20" style="background-color: #F0C797;"></button>
+                            <button onclick="window.changeFaceColor('#E0AC69')" class="w-5 h-5 rounded-full border border-white/20" style="background-color: #E0AC69;"></button>
+                            <button onclick="window.changeFaceColor('#8D5524')" class="w-5 h-5 rounded-full border border-white/20" style="background-color: #8D5524;"></button>
+                        </div>
+                    </div>
+                    <div class="bg-slate-950/40 p-2.5 rounded-xl border border-slate-800/60 flex flex-col justify-between">
+                        <label class="text-[10px] text-slate-400 font-semibold uppercase mb-1">실시간 동기화 제어</label>
+                        <button onclick="window.triggerQuickBlink()" class="bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg px-2.5 py-1 text-xs font-semibold transition active:scale-95 flex items-center justify-center gap-1">
+                            <i class="fa-regular fa-eye-slash"></i> 눈 깜빡이기 (Blink)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Realtime Expression Levels -->
+                <div class="bg-slate-950/50 p-4 rounded-2xl border border-slate-800/80 space-y-2.5">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">실시간 표정 수치 (Confidence Profile)</h3>
+                    
+                    <!-- Neutral -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-xs">
+                            <span class="text-slate-300 font-medium flex items-center gap-1.5">😐 평온 (Neutral)</span>
+                            <span id="score-neutral" class="text-slate-400 font-mono">0%</span>
+                        </div>
+                        <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                            <div id="bar-neutral" class="bg-slate-400 h-full w-0 transition-all duration-150"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Happy -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-xs">
+                            <span class="text-emerald-400 font-medium flex items-center gap-1.5">😊 기쁨 (Happy)</span>
+                            <span id="score-happy" class="text-emerald-400 font-mono">0%</span>
+                        </div>
+                        <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                            <div id="bar-happy" class="bg-emerald-500 h-full w-0 transition-all duration-150"></div>
+                        </div>
+                    </div>
+
+                    <!-- Sad -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-xs">
+                            <span class="text-blue-400 font-medium flex items-center gap-1.5">😢 슬픔 (Sad)</span>
+                            <span id="score-sad" class="text-blue-400 font-mono">0%</span>
+                        </div>
+                        <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                            <div id="bar-sad" class="bg-blue-500 h-full w-0 transition-all duration-150"></div>
+                        </div>
+                    </div>
+
+                    <!-- Angry -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-xs">
+                            <span class="text-rose-400 font-medium flex items-center gap-1.5">😡 화남 (Angry)</span>
+                            <span id="score-angry" class="text-rose-400 font-mono">0%</span>
+                        </div>
+                        <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                            <div id="bar-angry" class="bg-rose-500 h-full w-0 transition-all duration-150"></div>
+                        </div>
+                    </div>
+
+                    <!-- Surprised -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-xs">
+                            <span class="text-amber-400 font-medium flex items-center gap-1.5">😲 놀람 (Surprised)</span>
+                            <span id="score-surprised" class="text-amber-400 font-mono">0%</span>
+                        </div>
+                        <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                            <div id="bar-surprised" class="bg-amber-500 h-full w-0 transition-all duration-150"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Manual Testing Controls -->
+                <div class="bg-indigo-950/30 border border-indigo-900/40 p-4 rounded-2xl">
+                    <span class="text-xs font-bold text-indigo-400 uppercase tracking-wider block mb-2">
+                        <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> 수동 표정 테스트 (모의 제어)
+                    </span>
+                    <p class="text-[11px] text-slate-400 mb-2">웹캠을 켜지 않아도 직접 내 아바타의 실시간 표정 변화를 트리거할 수 있으며, 발송하는 대화 프로필에 이 표정이 고스란히 저장됩니다.</p>
+                    <div class="grid grid-cols-5 gap-1.5">
+                        <button onclick="window.setOverrideEmotion('neutral')" class="bg-slate-800 hover:bg-slate-700 text-xs py-1.5 rounded-lg border border-slate-700 active:scale-95 transition">😐 평온</button>
+                        <button onclick="window.setOverrideEmotion('happy')" class="bg-emerald-950/60 hover:bg-emerald-900 text-emerald-300 text-xs py-1.5 rounded-lg border border-emerald-800/40 active:scale-95 transition">😊 기쁨</button>
+                        <button onclick="window.setOverrideEmotion('sad')" class="bg-blue-950/60 hover:bg-blue-900 text-blue-300 text-xs py-1.5 rounded-lg border border-blue-800/40 active:scale-95 transition">😢 슬픔</button>
+                        <button onclick="window.setOverrideEmotion('angry')" class="bg-rose-950/60 hover:bg-rose-900 text-rose-300 text-xs py-1.5 rounded-lg border border-rose-800/40 active:scale-95 transition">😡 화남</button>
+                        <button onclick="window.setOverrideEmotion('surprised')" class="bg-amber-950/60 hover:bg-amber-900 text-amber-300 text-xs py-1.5 rounded-lg border border-amber-800/40 active:scale-95 transition">😲 놀람</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Panel: Sympathy Co-Presence Chatroom with sliding drawer (7 Columns) -->
+        <section class="lg:col-span-7 flex flex-col bg-slate-900/40 border border-slate-800/80 rounded-3xl overflow-hidden shadow-2xl relative h-[84vh] lg:h-auto min-h-[600px]">
+            
+            <!-- Chat Header -->
+            <div class="bg-slate-900/80 px-6 py-4 border-b border-slate-800/80 flex justify-between items-center z-10">
+                <div class="flex items-center space-x-3">
+                    <div class="w-3.5 h-3.5 rounded-full bg-emerald-500 relative flex items-center justify-center">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-1.5">
+                            <h2 class="text-sm font-bold text-slate-200">실시간 공존 소통 채널</h2>
+                            <span id="room-id-badge" class="bg-slate-800 text-[10px] text-slate-400 px-2 py-0.5 rounded border border-slate-700 font-mono font-bold">ROOM: -</span>
+                        </div>
+                        <p class="text-xs text-slate-400">물리적 실존을 반영하는 대화 네트워크</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-3">
+                    <div id="current-expression-badge" class="bg-indigo-950/80 text-indigo-300 border border-indigo-800/60 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
+                        <i class="fa-solid fa-circle-nodes text-[10px]"></i> 감정 분석 대기 중
+                    </div>
+                    <!-- KakaoTalk Style Menu Hamburger Button -->
+                    <button onclick="window.toggleDrawer()" class="text-slate-400 hover:text-white transition duration-200 focus:outline-none">
+                        <i class="fa-solid fa-bars text-lg"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Co-Presence Avatar Deck (Top of Chat Feed - Dynamically Rendered) -->
+            <div id="presence-deck" class="bg-slate-950/40 p-4 border-b border-slate-800/60 grid gap-3 z-10 shadow-inner">
+                <!-- Canvases are rendered dynamically in JS based on room active status -->
+            </div>
+
+            <!-- Contextual Note Banner (Philosophy of Pyle's Extinction of Experience) -->
+            <div class="bg-indigo-950/30 px-5 py-2 border-b border-indigo-900/30 flex items-start space-x-2 text-[11px] text-indigo-200">
+                <i class="fa-solid fa-circle-info mt-0.5 text-indigo-400 text-xs flex-shrink-0"></i>
+                <div>
+                    <span class="font-bold">실시간 멀티플레이 최적화 완료:</span> 
+                    우측 상단 <b>"초대 코드 확인"</b> 버튼으로 친구들에게 코드를 공유해 실제 실시간 채팅 및 상호 표정 동기화를 체험해보세요!
+                </div>
+            </div>
+
+            <!-- Sliding Drawer Menu for Participants (KakaoTalk Style Drawer) -->
+            <div id="chat-drawer" class="absolute top-0 right-0 h-full w-64 bg-slate-900 border-l border-slate-800 transform translate-x-full transition-transform duration-300 z-30 flex flex-col shadow-2xl">
+                <!-- Drawer Header -->
+                <div class="p-4 border-b border-slate-800/80 flex justify-between items-center bg-slate-950/20">
+                    <span class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-users"></i> 대화방 서랍 (참가자)
+                    </span>
+                    <button onclick="window.toggleDrawer()" class="text-slate-400 hover:text-white transition">
+                        <i class="fa-solid fa-xmark text-base"></i>
+                    </button>
+                </div>
+                <!-- Drawer Content -->
+                <div class="flex-1 overflow-y-auto p-4 space-y-4">
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">실제 온라인 참여자</span>
+                            <span id="active-user-count" class="text-[10px] bg-indigo-950 text-indigo-300 border border-indigo-800/40 px-1.5 py-0.2 rounded font-mono">0명</span>
+                        </div>
+                        <div id="drawer-real-user-list" class="space-y-2.5">
+                            <!-- Populated with real-time active users -->
+                        </div>
+                    </div>
+
+                    <div class="border-t border-slate-800/60 my-4 pt-3 space-y-2">
+                        <span class="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">AI 봇 초대하기 (시뮬레이션 전용)</span>
+                        <div id="drawer-bot-list" class="space-y-2.5">
+                            <!-- Populated with bots (minwoo, seoyeon, jihyun) toggle buttons -->
+                        </div>
+                    </div>
+                </div>
+                <!-- Drawer Footer -->
+                <div class="p-4 border-t border-slate-800/80 bg-slate-950/30">
+                    <p class="text-[10px] text-slate-500 text-center leading-relaxed">단체방에 참여한 실제 유저들과 AI 봇들만 실시간 감정 피드백에 응답합니다.</p>
+                </div>
+            </div>
+
+            <!-- Drawer Backdrop Overlay -->
+            <div id="drawer-backdrop" class="absolute inset-0 bg-slate-950/60 hidden z-20 transition-opacity duration-300 rounded-3xl" onclick="window.toggleDrawer()"></div>
+
+            <!-- Chat Message Feed Area -->
+            <div id="chat-messages" class="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-950/30">
+                <!-- KakaoTalk Style Date Line -->
+                <div class="flex justify-center my-2">
+                    <span class="bg-slate-800/40 text-slate-400 text-[10px] px-4 py-1.5 rounded-full font-medium">
+                        오늘
+                    </span>
+                </div>
+                <!-- Message structures render empty initially. User starts typing to post. -->
+            </div>
+
+            <!-- Input Area with Dynamic Live Expression Badge -->
+            <div class="p-4 bg-slate-900 border-t border-slate-800/80 space-y-3 z-10">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs text-slate-400">현재 발송할 내 존재감 감정:</span>
+                        <span id="sender-emotion-indicator" class="bg-slate-800 text-slate-300 border border-slate-700 px-2.5 py-0.5 rounded-full text-xs font-medium flex items-center gap-1">
+                            😐 평온 (Neutral)
+                        </span>
+                    </div>
+                    <div id="ai-tracking-micro-indicator" class="text-[10px] text-slate-500 flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+                        AI 표정 트래커 정지됨
+                    </div>
+                </div>
+
+                <!-- Chat entry form -->
+                <form id="chat-form" onsubmit="window.handleSendMessage(event)" class="flex space-x-2 items-center">
+                    <input type="text" id="chat-input" placeholder="대화 내용을 입력하여 아바타 표정과 함께 존재감을 전송해보세요..." class="flex-1 bg-slate-950 text-slate-200 placeholder-slate-500 text-xs rounded-xl px-4 py-3 border border-slate-800 focus:outline-none focus:border-indigo-500 transition duration-200">
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl px-5 py-3 text-xs font-bold flex items-center gap-1.5 active:scale-95 transition">
+                        <span>전송</span>
+                        <i class="fa-solid fa-paper-plane text-[10px]"></i>
+                    </button>
+                </form>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Onboarding / Welcome Profile Setup Modal (MANDATORY ON STARTUP) -->
+    <div id="onboarding-modal" class="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl relative">
+            <div class="space-y-5 text-center">
+                <div class="w-16 h-16 bg-gradient-to-tr from-indigo-500 to-purple-500 text-white rounded-2xl mx-auto flex items-center justify-center shadow-xl shadow-indigo-500/20">
+                    <i class="fa-solid fa-satellite-dish text-2xl"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-extrabold text-slate-200">SympathLink 입장 라운지</h3>
+                    <p class="text-xs text-slate-400 mt-1">대화방 입장에 앞서 닉네임과 방 코드를 확인해주세요.</p>
+                </div>
+
+                <div class="space-y-4 text-left">
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider block">사용할 대화명</label>
+                        <input type="text" id="setup-username" placeholder="닉네임을 입력하세요..." class="w-full bg-slate-950 text-slate-200 placeholder-slate-600 text-xs rounded-xl px-4 py-3 border border-slate-800 focus:outline-none focus:border-indigo-500 transition">
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider block">나의 아바타 피부 톤</label>
+                        <div class="flex space-x-2">
+                            <button onclick="window.selectSetupFaceColor('#FFE0B2', this)" class="w-8 h-8 rounded-full border-2 border-indigo-500" style="background-color: #FFE0B2;"></button>
+                            <button onclick="window.selectSetupFaceColor('#F0C797', this)" class="w-8 h-8 rounded-full border-2 border-transparent" style="background-color: #F0C797;"></button>
+                            <button onclick="window.selectSetupFaceColor('#E0AC69', this)" class="w-8 h-8 rounded-full border-2 border-transparent" style="background-color: #E0AC69;"></button>
+                            <button onclick="window.selectSetupFaceColor('#8D5524', this)" class="w-8 h-8 rounded-full border-2 border-transparent" style="background-color: #8D5524;"></button>
+                        </div>
+                    </div>
+
+                    <div class="space-y-1.5 pt-3 border-t border-slate-800/80">
+                        <label class="text-xs font-bold text-emerald-400 uppercase tracking-wider block flex items-center gap-1.5">
+                            <i class="fa-solid fa-key"></i> 대화방 생성 및 참여
+                        </label>
+                        <div class="bg-emerald-950/20 border border-emerald-900/30 rounded-xl p-3 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[10px] text-slate-400">새 방을 만들거나 코드를 입력하세요.</span>
+                                <button onclick="window.generateRandomRoomCode()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold transition active:scale-95 shadow-md shadow-emerald-500/20">
+                                    <i class="fa-solid fa-plus mr-1"></i> 새 방 만들기
+                                </button>
+                            </div>
+                            <div class="relative">
+                                <input type="text" id="setup-room-code" placeholder="여기에 방 코드를 입력하세요 (예: X9F2A)" class="w-full bg-slate-950 text-emerald-300 placeholder-slate-600 text-sm rounded-lg px-4 py-2.5 border border-slate-700 focus:outline-none focus:border-emerald-500 font-mono transition text-center uppercase tracking-[0.2em] font-bold">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-4">
+                    <button onclick="window.submitOnboarding()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3.5 rounded-xl text-xs font-bold shadow-lg shadow-indigo-500/20 active:scale-95 transition flex items-center justify-center gap-2">
+                        <span>실시간 대화방 입장하기</span>
+                        <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Project Info Modal Overlay -->
+    <div id="info-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl relative">
+            <button onclick="window.toggleModal('info-modal')" class="absolute top-4 right-4 text-slate-400 hover:text-white transition">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <div class="space-y-4">
+                <div class="flex items-center space-x-3 border-b border-slate-800 pb-3">
+                    <div class="bg-indigo-600 text-white p-2 rounded-xl">
+                        <i class="fa-solid fa-book-open"></i>
+                    </div>
+                    <h3 class="text-base font-bold">『경험의 멸종』 극복과 아바타 소통</h3>
+                </div>
+                <div class="space-y-2.5 text-xs text-slate-300 leading-relaxed">
+                    <p>
+                        <b>기반 문제의식:</b> <br>
+                        자연주의자 로버트 마이클 파일(Robert Michael Pyle)이 언급한 <b>"경험의 멸종(The Extinction of Experience)"</b>은 기술 발달이 우리의 감각적 인지와 현실 존재감, 더 나아가 직접적인 교감이 주는 유대감을 소멸시킨다는 냉철한 경고를 담고 있습니다.
+                    </p>
+                    <p>
+                        <b>연구 및 서비스의 본질:</b> <br>
+                        이 프로젝트는 디지털 채팅의 '시간과 물리적 한계 초월'이라는 장점은 극대화하되, 인간적인 대면의 따뜻함(표정, 미묘한 비언어적 존재감)을 AI로 실시간 추출·매핑함으로써 현실의 인격성을 다시 가상 환경으로 수혈하고자 합니다.
+                    </p>
+                    <p>
+                        <b>기능 특징:</b> <br>
+                        카메라를 통해 실시간 기쁨(Happy), 슬픔(Sad), 화남(Angry), 놀람(Surprised), 평온(Neutral) 등의 감정을 수치화하고, 이를 인공지능이 즉시 가상 아바타의 눈, 눈썹, 입꼬리 형태 등으로 매핑하여 타인과의 대화 속에 '물리적 공간에서의 감정적 실재감'을 즉시 체감하게 설계되었습니다.
+                    </p>
+                </div>
+                <div class="pt-2 border-t border-slate-800 flex justify-end">
+                    <button onclick="window.toggleModal('info-modal')" class="bg-slate-800 hover:bg-slate-700 text-xs px-4 py-2 rounded-lg font-semibold transition text-white">닫기</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invite Link Modal -->
+    <div id="invite-modal" class="fixed inset-0 z-[101] bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl relative shadow-emerald-500/10">
+            <button onclick="window.toggleModal('invite-modal')" class="absolute top-4 right-4 text-slate-400 hover:text-white transition">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <div class="space-y-4">
+                <div class="flex items-center space-x-3 border-b border-slate-800 pb-3">
+                    <div class="bg-emerald-600 text-white p-2.5 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                        <i class="fa-solid fa-key text-base"></i>
+                    </div>
+                    <h3 class="text-base font-bold text-slate-200">초대 코드로 친구 초대하기</h3>
+                </div>
+                
+                <div class="bg-indigo-950/40 border border-indigo-900/50 p-3 rounded-xl mb-4">
+                    <p class="text-[11px] text-indigo-300 leading-relaxed">
+                        <i class="fa-solid fa-circle-info mr-1"></i> 친구에게 아래의 <b>접속 링크</b>를 보내거나 <b>QR 코드</b>를 스캔하게 하세요. 접속 시 방 코드가 자동으로 입력됩니다!
+                    </p>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">대화방 초대 코드</label>
+                    <div class="relative flex items-center mt-1">
+                        <input type="text" id="invite-room-code" readonly class="w-full bg-slate-950 text-emerald-300 text-lg text-center rounded-xl px-4 py-3 border border-slate-800 focus:outline-none font-mono font-bold tracking-[0.2em] shadow-inner">
+                        <button onclick="window.copyRoomCode()" class="absolute right-2 bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold transition active:scale-95 shadow-md">
+                            코드 복사
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 전체 접속 링크 복사 기능 추가 -->
+                <div class="space-y-1.5 mt-3">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">바로 접속 링크 (웹사이트 URL)</label>
+                    <div class="relative flex items-center mt-1">
+                        <input type="text" id="invite-full-link" readonly class="w-full bg-slate-950 text-slate-300 text-[10px] rounded-xl pl-3 pr-20 py-3 border border-slate-800 focus:outline-none shadow-inner truncate">
+                        <button onclick="window.copyFullLink()" class="absolute right-2 bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold transition active:scale-95 shadow-md">
+                            링크 복사
+                        </button>
+                    </div>
+                </div>
+
+                <!-- QR Code Section -->
+                <div class="mt-4 border-t border-slate-800/80 pt-4 flex flex-col items-center justify-center space-y-3">
+                    <div id="qrcode-container" class="bg-white p-2 rounded-xl"></div>
+                    <span id="copy-status-message" class="text-[11px] text-emerald-400 font-bold block mt-2 text-center h-4"></span>
+                </div>
+                
+                <div class="pt-4 border-t border-slate-800 flex justify-end">
+                    <button onclick="window.toggleModal('invite-modal')" class="bg-slate-800 hover:bg-slate-700 text-xs px-4 py-2 rounded-lg font-semibold transition text-white">닫기</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footnote details -->
+    <footer class="border-t border-slate-800 py-4 bg-slate-950/40 text-center text-[11px] text-slate-500">
+        <p>&copy; 2026 SympathLink UI Prototype. 설계: 인간 존중 디지털 소통 프레임워크 연구회</p>
+    </footer>
+
+    <!-- Unified Script Module tag to handle Firebase SDK and Web Application Logic sequentially without race conditions -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Environment Variables Setup (Safety check for Sandbox parameters)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'sympathlink-multi-interactive';
+        
+        let firebaseConfig = null;
+        try {
+            if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+                if (typeof __firebase_config === 'string') {
+                    firebaseConfig = JSON.parse(__firebase_config);
+                } else {
+                    firebaseConfig = __firebase_config; // Object 처리
+                }
+            }
+        } catch (e) {
+            console.warn("Firebase configuration parsing error. Running offline-simulation mode.", e);
+        }
+
+        // Global states
+        let db = null;
+        let auth = null;
+        let isFirebaseActive = false;
+
+        if (firebaseConfig) {
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                isFirebaseActive = true;
+            } catch (err) {
+                console.error("Firebase initiation failure:", err);
+            }
+        }
+
+        let isFaceTrackingActive = false;
+        let detectionInterval = null;
+        let overrideEmotion = 'neutral';
+        let faceColor = '#FFE0B2';
+        let isDrawerOpen = false;
+        let myUsername = '익명';
+        let myUserId = 'user_' + Math.random().toString(36).substr(2, 9); // 로컬 다중 접속을 위한 랜덤 ID 부여
+        let roomId = 'default-room';
+
+        // Local state maps
+        let activeUsers = []; 
+        let dynamicUserStates = {}; 
+
+        // DOM elements cache
+        let video, cameraToggle, cameraPlaceholder, trackingBracket, trackingLabel, currentExpressionBadge, senderEmotionIndicator, aiTrackingMicroIndicator;
+
+        // Emoji & Color lookup map
+        const expressionEmoji = {
+            neutral: '😐 평온 (Neutral)',
+            happy: '😊 기쁨 (Happy)',
+            sad: '😢 슬픔 (Sad)',
+            angry: '😡 화남 (Angry)',
+            surprised: '😲 놀람 (Surprised)'
+        };
+
+        const emotionColors = {
+            neutral: '#64748b',
+            happy: '#10b981',
+            sad: '#3b82f6',
+            angry: '#f43f5e',
+            surprised: '#f59e0b'
+        };
+
+        const bots = {
+            minwoo: { active: true, name: '민우', faceColor: '#E0AC69', hairColor: '#0f172a', emotion: 'neutral' },
+            seoyeon: { active: true, name: '서연', faceColor: '#F0C797', hairColor: '#475569', emotion: 'happy' },
+            jihyun: { active: false, name: '지현', faceColor: '#FFE0B2', hairColor: '#78350f', emotion: 'neutral' }
+        };
+
+        // Conversational responses from friends
+        const botReplies = {
+            minwoo: {
+                neutral: [
+                    "오늘 저녁에 치킨 땡기지 않냐? 뿌링클 각이다 ㅋㅋㅋ",
+                    "나 지금 퇴근하고 누워있는데 천국이 따로 없다 ㅋㅋㅋ",
+                    "주말에 다들 한강 갈 사람 구함!! 날씨 짱 좋아"
+                ],
+                happy: [
+                    "오대박 ㅋㅋㅋ 오늘 기분 날아갈거 같아 보이는데? 뭔 일이야?",
+                    "싱글벙글이네 아주 ㅋㅋㅋ 오늘 기분 최고인가 봄 ㅋㅋㅋ",
+                    "오예~~ 나까지 텐션 오른다 ㅋㅋㅋ 이따 밤새 놀자!"
+                ],
+                sad: [
+                    "아고 ㅠㅠㅠ 속상한 일 있었어? 오늘 내가 코인노래방 쏜다 ㅠㅠ",
+                    "토닥토닥... 우울해하지 마 ㅠㅠ 맛난 거 먹고 훌훌 털자!",
+                    "에공 무슨 일이야 대체 ㅠㅠ 톡방에 다 털어놓으셈 내가 들어줌"
+                ],
+                angry: [
+                    "헐 표정 빡센데 ㅋㅋㅋ 누가 우리 소중한 친구를 화나게 한거냐!",
+                    "워워 릴랙스 ㅋㅋㅋ 혈압 오른다 ㅠㅠ 맛있는 거 먹으러 가자!",
+                    "헉 화난거 무섭다 야 ㅋㅋㅋ 심호흡 크게 세번 해봐!"
+                ],
+                surprised: [
+                    "헐 대박사건 ㅋㅋㅋ 눈 동그랗게 뜬거 짱귀엽네 ㅋㅋㅋ",
+                    "헉 깜짝이야!!! 무슨 어마어마한 뉴스라도 본거임? 공유 고고",
+                    "ㅋㅋㅋ 깜놀했네! 표정 리액션 완전 찰지다 ㅋㅋㅋ"
+                ]
+            },
+            seoyeon: {
+                neutral: [
+                    "그니까 ㅋㅋㅋ 다들 주말에 뭐해? 나 완전 예쁜 카페 알아냈는데!",
+                    "아 커피 수혈 시급하다... 지금 아아 사러 나갈 사람?",
+                    "나 넷플 신작 정주행 중인데 이거 진짜 시간 순삭임 ㅋㅋㅋ"
+                ],
+                happy: [
+                    "우와 ㅋㅋㅋ 웃는 모습 보니까 나도 같이 행복해지네!!!",
+                    "기분 엄청 좋아보인다! 오늘 완전 계 탄거 아냐? ㅋㅋㅋ",
+                    "히히 좋은 기운 팍팍 느껴짐!! 오늘 하루 홧팅이야!"
+                ],
+                sad: [
+                    "아고 ㅠㅠㅠ 마음 아프게 표정 왜그래... 기운 내 친구야 ㅠㅠ",
+                    "무슨 일이야 진짜 ㅠㅠ 속상하겠다... 달달구리 마카롱 시켜줄까?",
+                    "힝 시무룩해있지마 ㅠㅠ 이따 마크 맛집 투어 가자!"
+                ],
+                angry: [
+                    "에고고... 누구야!! 다 데려와 내가 맴매해줄게!! 화 풀어 ㅠㅠ",
+                    "헐 포스 보소... ㅋㅋㅋ 나 무서우니까 빨리 화 풀어줘 어여!",
+                    "에구 ㅠㅠ 속상했겠다 진짜... 기분 나쁜 건 오늘 밤에 다 잊자!"
+                ],
+                surprised: [
+                    "어머!! ㅋㅋㅋ 완전 토끼눈 됐는데? 왜이렇게 깜짝 놀람 ㅋㅋㅋ",
+                    "헐 대박 ㅋㅋㅋ 눈 엄청 커짐!! 무슨 깜짝 뉴스라도 들었어?",
+                    "리액션 장인이다 진짜 ㅋㅋㅋ 왜 왜 뭔일인데 그래?"
+                ]
+            },
+            jihyun: {
+                neutral: [
+                    "오랜만에 톡방 활발하네!! 다들 넘 반가워 ㅋㅋㅋ",
+                    "시험 공부 하다가 머리 식히러 옴... 다들 저녁 뭐 먹어?",
+                    "안농!! 오늘 날씨 나른해서 계속 졸았어 대박 ㅋㅋㅋ"
+                ],
+                happy: [
+                    "와 다들 기분 좋은가봐!!! 웃는거 보니까 넘 흐뭇해 ㅋㅋㅋ",
+                    "하하하 오늘 무슨 좋은 날인가? 다들 표정 짱 밝네!",
+                    "좋은 기운 고대로 받아갑니당 ㅋㅋㅋ 기분 좋아 보여서 좋아!"
+                ],
+                sad: [
+                    "에구 ㅠㅠ 시무룩해있지마 속상하겡... ㅠㅠ 내가 옆에 있어줄게",
+                    "우울한 생각은 다 던져버려!! 맛난거 먹고 푸자 홧팅!",
+                    "무슨 일 있었구낭... ㅠㅠ 힘내자 내가 있잖아!"
+                ],
+                angry: [
+                    "앗 ㅋㅋㅋ 표정 포스가 예사롭지 않다 ㅠㅠ 기분 좋은 노래 듣자!",
+                    "화내면 주름 생긴다구!! 스마일 스마일 해바 ㅋㅋㅋ",
+                    "누가 널 화나게 한거양!! 내가 혼쭐을 내주겠어!!"
+                ],
+                surprised: [
+                    "ㅋㅋㅋ 깜짝 리액션 짱 귀여워!! 완전 동그란 눈이네 ㅋㅋㅋ",
+                    "눈 진짜 똥그랗게 떴다 ㅋㅋㅋ 대박 기밀 정보라도 얻은 거야?",
+                    "헐 대박사건!!! ㅋㅋㅋ 무슨 깜짝 놀랄 만한 얘기 나누는 거야?"
+                ]
+            }
+        };
+
+        window.onload = async function() {
+            // Setup DOM caches
+            video = document.getElementById('webcam-video');
+            cameraToggle = document.getElementById('camera-toggle');
+            cameraPlaceholder = document.getElementById('camera-placeholder');
+            trackingBracket = document.getElementById('tracking-bracket');
+            trackingLabel = document.getElementById('tracking-label');
+            currentExpressionBadge = document.getElementById('current-expression-badge');
+            senderEmotionIndicator = document.getElementById('sender-emotion-indicator');
+            aiTrackingMicroIndicator = document.getElementById('ai-tracking-micro-indicator');
+
+            // Robustly parse room parameter for Entry Lounge
+            let initialRoom = null;
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                initialRoom = urlParams.get('room');
+            } catch (e) {
+                console.warn("Failed to extract room search param.", e);
+            }
+
+            if (!initialRoom && document.referrer) {
+                try {
+                    const refUrl = new URL(document.referrer);
+                    initialRoom = refUrl.searchParams.get('room');
+                } catch (e) { }
+            }
+
+            if (initialRoom) {
+                document.getElementById('setup-room-code').value = initialRoom;
+            }
+
+            // Pre-run canvas render loop
+            animate();
+
+            // Load face-api models safely
+            try {
+                const aiStatusText = document.getElementById('ai-status-text');
+                const aiStatusBadge = document.getElementById('ai-status-badge');
+                aiStatusText.innerText = "AI 소통 엔진 다운로드 중...";
+                const modelUrl = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.9/model/';
+                
+                await faceapi.nets.tinyFaceDetector.loadFromUri(modelUrl);
+                await faceapi.nets.faceExpressionNet.loadFromUri(modelUrl);
+                
+                aiStatusText.innerText = "AI 분석기 준비 완료";
+                aiStatusBadge.classList.replace('bg-slate-800', 'bg-emerald-950/60');
+                aiStatusBadge.classList.add('border-emerald-800/40');
+                aiStatusBadge.querySelector('span').classList.replace('bg-amber-500', 'bg-emerald-500');
+            } catch (err) {
+                console.warn("Face-API direct loading failed.", err);
+                document.getElementById('ai-status-text').innerText = "수동 표정 제어 모드";
+                const badgeSpan = document.getElementById('ai-status-badge').querySelector('span');
+                badgeSpan.classList.remove('animate-ping');
+                badgeSpan.classList.replace('bg-amber-500', 'bg-slate-500');
+            }
+
+            if (isFirebaseActive) {
+                document.getElementById('ai-status-text').innerText = "온라인 멀티플레이 준비완료";
+                const badge = document.getElementById('ai-status-badge');
+                badge.classList.replace('bg-slate-800', 'bg-indigo-950/60');
+                badge.classList.add('border-indigo-800/40');
+            } else {
+                document.getElementById('ai-status-text').innerText = "로컬 시물레이터 (서버 미정)";
+                const badge = document.getElementById('ai-status-badge');
+                badge.classList.replace('bg-indigo-950/60', 'bg-slate-800');
+            }
+        };
+
+        window.generateRandomRoomCode = function() {
+            const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+            document.getElementById('setup-room-code').value = code;
+        };
+
+        window.selectSetupFaceColor = function(color, btn) {
+            faceColor = color;
+            const buttons = btn.parentElement.querySelectorAll('button');
+            buttons.forEach(b => b.classList.replace('border-indigo-500', 'border-transparent'));
+            btn.classList.replace('border-transparent', 'border-indigo-500');
+        };
+
+        window.submitOnboarding = async function() {
+            const usernameInput = document.getElementById('setup-username');
+            const username = usernameInput.value.trim();
+            if (!username) {
+                alert("닉네임을 입력해주세요!");
+                return;
+            }
+            myUsername = username;
+            
+            // Set Room ID from input or generate a new one
+            let roomCodeInput = document.getElementById('setup-room-code').value.trim();
+            if (!roomCodeInput) {
+                roomCodeInput = Math.random().toString(36).substring(2, 8).toUpperCase();
+            }
+            roomId = roomCodeInput.toUpperCase();
+            document.getElementById('room-id-badge').innerText = `ROOM: ${roomId}`;
+
+            // Update URL to reflect current room
+            try {
+                window.history.replaceState({}, '', `?room=${roomId}`);
+            } catch (e) {
+                console.warn("History API block detected. Falling back to in-memory room tracking.", e);
+            }
+
+            document.getElementById('onboarding-modal').classList.add('hidden');
+
+            if (isFirebaseActive) {
+                try {
+                    let userCredential;
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        userCredential = await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        userCredential = await signInAnonymously(auth);
+                    }
+                    myUserId = userCredential.user.uid;
+                    console.log("Successfully connected with UID: " + myUserId);
+
+                    await registerSessionAndListen();
+                } catch (e) {
+                    console.error("Firebase Auth sequence failed. Falling back to local standalone simulation.", e);
+                    buildLocalStandaloneSession();
+                }
+            } else {
+                buildLocalStandaloneSession();
+            }
+        };
+
+        async function registerSessionAndListen() {
+            if (!auth.currentUser) return; 
+
+            const userDocId = `${roomId}_${myUserId}`;
+            const userRef = doc(db, 'artifacts', appId, 'public', 'data', 'roomUsers', userDocId);
+            
+            await setDoc(userRef, {
+                userId: myUserId,
+                roomId: roomId,
+                name: myUsername,
+                faceColor: faceColor,
+                emotion: overrideEmotion,
+                lastActive: Date.now(),
+                isBot: false
+            });
+
+            setInterval(async () => {
+                try {
+                    if (!auth.currentUser) return;
+                    await updateDoc(userRef, {
+                        lastActive: Date.now(),
+                        emotion: overrideEmotion,
+                        faceColor: faceColor
+                    });
+                } catch (err) {}
+            }, 8000);
+
+            const roomUsersCollection = collection(db, 'artifacts', appId, 'public', 'data', 'roomUsers');
+            onSnapshot(roomUsersCollection, (snapshot) => {
+                if (!auth.currentUser) return;
+                const activeThreshold = Date.now() - 30000; 
+                const updatedUsers = [];
+                
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    if (data.roomId === roomId && (data.lastActive > activeThreshold || data.isBot)) {
+                        updatedUsers.push(data);
+                    }
+                });
+                
+                activeUsers = updatedUsers;
+                renderActivePresenceDeck();
+                renderDrawerParticipants();
+            }, (error) => {
+                console.error("User list sync error:", error);
+            });
+
+            const roomMessagesCollection = collection(db, 'artifacts', appId, 'public', 'data', 'roomMessages');
+            onSnapshot(roomMessagesCollection, (snapshot) => {
+                if (!auth.currentUser) return;
+                const updatedMsgs = [];
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    if (data.roomId === roomId) {
+                        updatedMsgs.push(data);
+                    }
+                });
+                
+                updatedMsgs.sort((a, b) => a.timestamp - b.timestamp);
+                renderChatTimeline(updatedMsgs);
+            }, (error) => {
+                console.error("Message sync error:", error);
+            });
+        }
+
+        function buildLocalStandaloneSession() {
+            activeUsers = [
+                { userId: myUserId, name: myUsername, faceColor: faceColor, emotion: overrideEmotion, isBot: false, roomId: roomId },
+                { userId: 'minwoo', name: '민우', faceColor: bots.minwoo.faceColor, emotion: bots.minwoo.emotion, isBot: true, roomId: roomId, hairColor: bots.minwoo.hairColor },
+                { userId: 'seoyeon', name: '서연', faceColor: bots.seoyeon.faceColor, emotion: bots.seoyeon.emotion, isBot: true, roomId: roomId, hairColor: bots.seoyeon.hairColor }
+            ];
+            renderActivePresenceDeck();
+            renderDrawerParticipants();
+
+            if (typeof BroadcastChannel !== 'undefined') {
+                window.localChannel = new BroadcastChannel('sympathlink_' + roomId);
+                
+                // 내 입장 사실을 브로드캐스트
+                window.localChannel.postMessage({
+                    type: 'USER_JOIN',
+                    user: { userId: myUserId, name: myUsername, faceColor: faceColor, emotion: overrideEmotion, isBot: false, roomId: roomId }
+                });
+
+                // 주기적으로 나의 감정 상태 동기화
+                setInterval(() => {
+                    window.localChannel.postMessage({
+                        type: 'USER_UPDATE',
+                        user: { userId: myUserId, emotion: overrideEmotion, faceColor: faceColor }
+                    });
+                }, 2000);
+
+                // 다른 탭에서의 데이터 수신
+                window.localChannel.onmessage = (event) => {
+                    const data = event.data;
+                    if (data.type === 'USER_JOIN' || data.type === 'USER_UPDATE') {
+                        const existingUser = activeUsers.find(u => u.userId === data.user.userId);
+                        if (existingUser) {
+                            existingUser.emotion = data.user.emotion;
+                            existingUser.faceColor = data.user.faceColor;
+                        } else if (data.type === 'USER_JOIN') {
+                            activeUsers.push(data.user);
+                            appendSystemMessage(`${data.user.name}님이 대화방에 입장했습니다. (다른 탭)`);
+                        }
+                        renderActivePresenceDeck();
+                        renderDrawerParticipants();
+                    } else if (data.type === 'CHAT_MESSAGE') {
+                        appendMessage(data.message);
+                    }
+                };
+            }
+        }
+
+        function drawAvatarInstance(ctx, width, height, state) {
+            ctx.clearRect(0, 0, width, height);
+            
+            const glowColor = emotionColors[state.emotion] || '#4F46E5';
+            const radialGrad = ctx.createRadialGradient(width/2, height/2, 5, width/2, height/2, width/1.8);
+            radialGrad.addColorStop(0, glowColor + '1F');
+            radialGrad.addColorStop(1, 'rgba(15, 23, 42, 0)');
+            ctx.fillStyle = radialGrad;
+            ctx.fillRect(0, 0, width, height);
+
+            const hashId = state.hairColor === '#1e293b' ? 0 : 300;
+            const breatheY = Math.sin((Date.now() + hashId) / 450) * 1.8;
+            ctx.save();
+            ctx.translate(0, breatheY);
+
+            ctx.fillStyle = '#475569';
+            ctx.beginPath();
+            ctx.moveTo(width/2 - (width * 0.22), height - 2);
+            ctx.quadraticCurveTo(width/2 - (width * 0.2), height - (height * 0.22), width/2 - (width * 0.125), height - (height * 0.22));
+            ctx.lineTo(width/2 + (width * 0.125), height - (height * 0.22));
+            ctx.quadraticCurveTo(width/2 + (width * 0.2), height - (height * 0.22), width/2 + (width * 0.22), height - 2);
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(width/2 - (width * 0.09), height - (height * 0.22));
+            ctx.lineTo(width/2, height - (height * 0.15));
+            ctx.lineTo(width/2 + (width * 0.09), height - (height * 0.22));
+            ctx.stroke();
+
+            ctx.fillStyle = darkenColor(state.faceColor, 18);
+            ctx.fillRect(width/2 - (width * 0.05), height/2 + (height * 0.1), width * 0.1, height * 0.15);
+
+            ctx.fillStyle = state.faceColor;
+            ctx.beginPath();
+            ctx.arc(width/2, height/2, width * 0.24, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 1.8;
+            ctx.stroke();
+
+            if (state.rosyCheeks) {
+                ctx.fillStyle = 'rgba(244, 63, 94, 0.3)';
+                ctx.beginPath();
+                ctx.arc(width/2 - (width * 0.125), height/2 + (height * 0.06), width * 0.045, 0, Math.PI * 2);
+                ctx.arc(width/2 + (width * 0.125), height/2 + (height * 0.06), width * 0.045, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.fillStyle = state.hairColor || '#1e293b';
+            ctx.beginPath();
+            ctx.arc(width/2, height/2 - (height * 0.05), width * 0.25, Math.PI, Math.PI * 2);
+            ctx.lineTo(width/2 + (width * 0.25), height/2 + (height * 0.03));
+            ctx.quadraticCurveTo(width/2 + (width * 0.125), height/2 - (height * 0.06), width/2 - (width * 0.075), height/2 - (height * 0.075));
+            ctx.quadraticCurveTo(width/2 - (width * 0.175), height/2 - (height * 0.03), width/2 - (width * 0.25), height/2 + (height * 0.03));
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.strokeStyle = state.hairColor || '#1e293b';
+            ctx.lineWidth = width * 0.015;
+            ctx.lineCap = 'round';
+            const leftBrowY = height/2 - (height * 0.075);
+            
+            ctx.beginPath();
+            if (state.emotion === 'angry') {
+                ctx.moveTo(width/2 - (width * 0.14), leftBrowY - (height * 0.0125));
+                ctx.lineTo(width/2 - (width * 0.05), leftBrowY + (height * 0.02));
+            } else if (state.emotion === 'sad') {
+                ctx.moveTo(width/2 - (width * 0.14), leftBrowY + (height * 0.02));
+                ctx.lineTo(width/2 - (width * 0.05), leftBrowY - (height * 0.006));
+            } else {
+                ctx.moveTo(width/2 - (width * 0.14), leftBrowY - (state.eyebrowTilt * (height * 0.03)));
+                ctx.quadraticCurveTo(width/2 - (width * 0.09), leftBrowY - (height * 0.0125) - (state.eyebrowTilt * (height * 0.04)), width/2 - (width * 0.05), leftBrowY - (state.eyebrowTilt * (height * 0.03)));
+            }
+            ctx.stroke();
+
+            ctx.beginPath();
+            if (state.emotion === 'angry') {
+                ctx.moveTo(width/2 + (width * 0.14), leftBrowY - (height * 0.0125));
+                ctx.lineTo(width/2 + (width * 0.05), leftBrowY + (height * 0.02));
+            } else if (state.emotion === 'sad') {
+                ctx.moveTo(width/2 + (width * 0.14), leftBrowY + (height * 0.02));
+                ctx.lineTo(width/2 + (width * 0.05), leftBrowY - (height * 0.006));
+            } else {
+                ctx.moveTo(width/2 + (width * 0.14), leftBrowY - (state.eyebrowTilt * (height * 0.03)));
+                ctx.quadraticCurveTo(width/2 + (width * 0.09), leftBrowY - (height * 0.0125) - (state.eyebrowTilt * (height * 0.04)), width/2 + (width * 0.05), leftBrowY - (state.eyebrowTilt * (height * 0.03)));
+            }
+            ctx.stroke();
+
+            const eyeXOffset = width * 0.1;
+            const leftEyeX = width/2 - eyeXOffset;
+            const rightEyeX = width/2 + eyeXOffset;
+            const eyeY = height/2 - (height * 0.0125);
+            const normalEyeRadius = width * 0.028;
+
+            if (state.blinkAmount > 0.4) {
+                ctx.strokeStyle = '#0f172a';
+                ctx.lineWidth = 1.8;
+                ctx.beginPath();
+                ctx.moveTo(leftEyeX - (width * 0.03), eyeY);
+                ctx.lineTo(leftEyeX + (width * 0.03), eyeY);
+                ctx.moveTo(rightEyeX - (width * 0.03), eyeY);
+                ctx.lineTo(rightEyeX + (width * 0.03), eyeY);
+                ctx.stroke();
+            } else if (state.emotion === 'happy') {
+                ctx.strokeStyle = '#0f172a';
+                ctx.lineWidth = 2.0;
+                ctx.beginPath();
+                ctx.arc(leftEyeX, eyeY + (height * 0.0125), width * 0.03, Math.PI, 0);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(rightEyeX, eyeY + (height * 0.0125), width * 0.03, Math.PI, 0);
+                ctx.stroke();
+            } else {
+                ctx.fillStyle = '#0f172a';
+                ctx.beginPath();
+                const scaleY = state.emotion === 'surprised' ? 1.25 : 1.0;
+                ctx.ellipse(leftEyeX, eyeY, normalEyeRadius, normalEyeRadius * scaleY, 0, 0, Math.PI * 2);
+                ctx.ellipse(rightEyeX, eyeY, normalEyeRadius, normalEyeRadius * scaleY, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(leftEyeX - (width * 0.01), eyeY - (height * 0.01), width * 0.008, 0, Math.PI * 2);
+                ctx.arc(rightEyeX - (width * 0.01), eyeY - (height * 0.01), width * 0.008, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            const mouthX = width/2;
+            const mouthY = height/2 + (height * 0.08);
+            ctx.fillStyle = '#0f172a';
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 1.8;
+
+            if (state.emotion === 'happy') {
+                ctx.fillStyle = '#f43f5e';
+                ctx.beginPath();
+                ctx.arc(mouthX, mouthY, width * 0.05, 0, Math.PI, false);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+                
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(mouthX - (width * 0.03), mouthY, width * 0.06, height * 0.012);
+            } else if (state.emotion === 'sad') {
+                ctx.beginPath();
+                ctx.arc(mouthX, mouthY + (height * 0.035), width * 0.038, Math.PI, 0, false);
+                ctx.stroke();
+            } else if (state.emotion === 'angry') {
+                ctx.beginPath();
+                ctx.moveTo(mouthX - (width * 0.05), mouthY + (height * 0.006));
+                ctx.lineTo(mouthX + (width * 0.05), mouthY);
+                ctx.stroke();
+            } else if (state.emotion === 'surprised') {
+                ctx.fillStyle = '#0f172a';
+                ctx.beginPath();
+                ctx.ellipse(mouthX, mouthY + (height * 0.012), width * 0.025, height * 0.05, 0, 0, Math.PI * 2);
+                ctx.fill();
+            } else {
+                ctx.beginPath();
+                ctx.arc(mouthX, mouthY, width * 0.025, 0, Math.PI, false);
+                ctx.stroke();
+            }
+
+            if (state.emotion === 'surprised') {
+                ctx.fillStyle = '#f59e0b';
+                ctx.font = `900 ${width * 0.075}px Inter`;
+                ctx.fillText('!', width/2 + (width * 0.18), height/2 - (height * 0.1));
+            } else if (state.emotion === 'sad') {
+                ctx.fillStyle = '#60a5fa';
+                ctx.beginPath();
+                ctx.arc(width/2 - (width * 0.125), height/2 + (height * 0.11), width * 0.014, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (state.emotion === 'angry') {
+                ctx.strokeStyle = '#ef4444';
+                ctx.lineWidth = 1.2;
+                ctx.beginPath();
+                ctx.moveTo(width/2 - (width * 0.22), height/2 - (height * 0.125));
+                ctx.lineTo(width/2 - (width * 0.175), height/2 - (height * 0.125));
+                ctx.moveTo(width/2 - (width * 0.19), height/2 - (height * 0.15));
+                ctx.lineTo(width/2 - (width * 0.19), height/2 - (height * 0.1));
+                ctx.stroke();
+            }
+
+            ctx.restore();
+        }
+
+        function animate() {
+            activeUsers.forEach(u => {
+                const canvas = document.getElementById(`deck-canvas-${u.userId}`);
+                if (canvas) {
+                    const ctx = canvas.getContext('2d');
+                    
+                    if (!dynamicUserStates[u.userId]) {
+                        dynamicUserStates[u.userId] = {
+                            blinkAmount: 0, mouthOpen: 0.1, mouthWidth: 0.4, eyebrowTilt: 0,
+                            emotion: 'neutral', rosyCheeks: false,
+                            faceColor: u.faceColor || '#FFE0B2', hairColor: u.hairColor || '#1e293b'
+                        };
+                    }
+
+                    const state = dynamicUserStates[u.userId];
+                    const targetState = {
+                        blinkAmount: (Date.now() % 4000 > 3800) || (u.userId === myUserId && manualBlinkActive) ? 1.0 : 0,
+                        mouthOpen: 0.1, mouthWidth: 0.4, eyebrowTilt: 0, rosyCheeks: false,
+                        emotion: u.emotion || 'neutral', faceColor: u.faceColor, hairColor: u.hairColor || '#1e293b'
+                    };
+
+                    updateAvatarTarget(targetState, u.emotion || 'neutral');
+
+                    state.blinkAmount = lerp(state.blinkAmount, targetState.blinkAmount, 0.25);
+                    state.mouthOpen = lerp(state.mouthOpen, targetState.mouthOpen, 0.18);
+                    state.mouthWidth = lerp(state.mouthWidth, targetState.mouthWidth, 0.18);
+                    state.eyebrowTilt = lerp(state.eyebrowTilt, targetState.eyebrowTilt, 0.18);
+                    state.rosyCheeks = targetState.rosyCheeks;
+                    state.emotion = targetState.emotion;
+                    state.faceColor = targetState.faceColor;
+                    state.hairColor = targetState.hairColor;
+
+                    drawAvatarInstance(ctx, canvas.width, canvas.height, state);
+                }
+            });
+
+            requestAnimationFrame(animate);
+        }
+
+        function updateAvatarTarget(state, emotion) {
+            state.emotion = emotion;
+            switch (emotion) {
+                case 'happy':
+                    state.mouthOpen = 0.55;
+                    state.mouthWidth = 0.8;
+                    state.eyebrowTilt = 0.1;
+                    state.rosyCheeks = true;
+                    break;
+                case 'sad':
+                    state.mouthOpen = 0.1;
+                    state.mouthWidth = 0.35;
+                    state.eyebrowTilt = -0.4;
+                    state.rosyCheeks = false;
+                    break;
+                case 'angry':
+                    state.mouthOpen = 0.05;
+                    state.mouthWidth = 0.5;
+                    state.eyebrowTilt = -0.6;
+                    state.rosyCheeks = false;
+                    break;
+                case 'surprised':
+                    state.mouthOpen = 0.85;
+                    state.mouthWidth = 0.3;
+                    state.eyebrowTilt = 0.6;
+                    state.rosyCheeks = true;
+                    break;
+                case 'neutral':
+                default:
+                    state.mouthOpen = 0.1;
+                    state.mouthWidth = 0.4;
+                    state.eyebrowTilt = 0;
+                    state.rosyCheeks = false;
+                    break;
+            }
+        }
+
+        function lerp(start, end, amt) {
+            return (1 - amt) * start + amt * end;
+        }
+
+        function darkenColor(hex, percent) {
+            let num = parseInt(hex.replace("#",""), 16),
+            amt = Math.round(2.55 * percent),
+            R = (num >> 16) - amt,
+            G = (num >> 8 & 0x00FF) - amt,
+            B = (num & 0x0000FF) - amt;
+            return "#" + (0x1000000 + (R<255?R<0?0:R:255)*0x10000 + (G<255?G<0?0:G:255)*0x100 + (B<255?B<0?0:B:255)).toString(16).slice(1);
+        }
+
+        let manualBlinkActive = false;
+        window.triggerQuickBlink = function() {
+            manualBlinkActive = true;
+            setTimeout(() => { manualBlinkActive = false; }, 180);
+        };
+
+        window.changeFaceColor = function(color) {
+            faceColor = color;
+        };
+
+        window.toggleWebcam = async function(checkbox) {
+            if (checkbox.checked) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { width: 320, height: 240, frameRate: { ideal: 15 } } 
+                    });
+                    video.srcObject = stream;
+                    video.classList.remove('hidden');
+                    cameraPlaceholder.classList.add('hidden');
+                    
+                    trackingBracket.style.borderColor = 'rgba(99, 102, 241, 0.4)';
+                    document.getElementById('tracking-label').style.opacity = '1';
+                    aiTrackingMicroIndicator.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span> AI 표정 분석 중`;
+
+                    isFaceTrackingActive = true;
+                    startFaceExpressionsLoop();
+                } catch (err) {
+                    checkbox.checked = false;
+                    alert("웹캠 접근 권한을 획득할 수 없습니다. 시스템 설정을 확인하거나 수동 모의 표정 제어를 활용해 주세요.");
+                }
+            } else {
+                stopWebcam();
+            }
+        };
+
+        function stopWebcam() {
+            isFaceTrackingActive = false;
+            if (detectionInterval) {
+                clearInterval(detectionInterval);
+                detectionInterval = null;
+            }
+            if (video.srcObject) {
+                video.srcObject.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+            }
+            video.classList.add('hidden');
+            cameraPlaceholder.classList.remove('hidden');
+            trackingBracket.style.borderColor = 'rgba(99, 102, 241, 0)';
+            document.getElementById('tracking-label').style.opacity = '0';
+            aiTrackingMicroIndicator.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span> AI 표정 트래커 정지됨`;
+            
+            updateConfidenceUI({ neutral: 1 });
+            window.setOverrideEmotion('neutral');
+        }
+
+        function startFaceExpressionsLoop() {
+            if (detectionInterval) clearInterval(detectionInterval);
+            
+            detectionInterval = setInterval(async () => {
+                if (!isFaceTrackingActive) return;
+                
+                try {
+                    const detections = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 }))
+                        .withFaceExpressions();
+                    
+                    if (detections && detections.expressions) {
+                        const expr = detections.expressions;
+                        
+                        let mappedExpr = {
+                            neutral: expr.neutral || 0,
+                            happy: expr.happy || 0,
+                            sad: expr.sad || 0,
+                            angry: expr.angry || 0,
+                            surprised: expr.surprised || 0
+                        };
+
+                        let maxEmotion = 'neutral';
+                        let maxVal = 0;
+                        for (const [emo, val] of Object.entries(mappedExpr)) {
+                            if (val > maxVal) {
+                                maxVal = val;
+                                maxEmotion = emo;
+                            }
+                        }
+
+                        updateConfidenceUI(mappedExpr);
+                        overrideEmotion = maxEmotion;
+                        
+                        currentExpressionBadge.innerHTML = `<i class="fa-solid fa-circle-dot text-[10px] text-emerald-400"></i> 감지: ${expressionEmoji[maxEmotion]}`;
+                        senderEmotionIndicator.innerHTML = expressionEmoji[maxEmotion];
+                    }
+                } catch (e) {
+                }
+            }, 250);
+        }
+
+        function updateConfidenceUI(exprs) {
+            const emotions = ['neutral', 'happy', 'sad', 'angry', 'surprised'];
+            emotions.forEach(emo => {
+                const val = exprs[emo] || 0;
+                const pct = Math.round(val * 100);
+                
+                const textEl = document.getElementById(`score-${emo}`);
+                if (textEl) textEl.innerText = `${pct}%`;
+                
+                const barEl = document.getElementById(`bar-${emo}`);
+                if (barEl) barEl.style.width = `${pct}%`;
+            });
+        }
+
+        window.setOverrideEmotion = function(emo) {
+            if (isFaceTrackingActive) {
+                cameraToggle.checked = false;
+                stopWebcam();
+            }
+            overrideEmotion = emo;
+            
+            let fakeLevels = { neutral: 0, happy: 0, sad: 0, angry: 0, surprised: 0 };
+            fakeLevels[emo] = 1.0;
+            updateConfidenceUI(fakeLevels);
+
+            currentExpressionBadge.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles text-[10px]"></i> 수동 지정: ${expressionEmoji[emo]}`;
+            senderEmotionIndicator.innerHTML = expressionEmoji[emo];
+        };
+
+        function renderActivePresenceDeck() {
+            const deck = document.getElementById('presence-deck');
+            deck.innerHTML = '';
+            
+            if (activeUsers.length === 0) return;
+
+            deck.style.gridTemplateColumns = `repeat(${activeUsers.length}, minmax(0, 1fr))`;
+            
+            activeUsers.forEach(user => {
+                const isSelf = user.userId === myUserId;
+                const colStyle = isSelf ? 'text-indigo-400' : 'text-slate-400';
+                const bgStyle = isSelf ? 'bg-indigo-950/40 border border-indigo-900/40' : 'bg-slate-900/80 border border-slate-800/60';
+                const labelText = isSelf ? '나 (Live)' : `${user.name} (${user.isBot ? 'AI 봇' : '온라인'})`;
+                
+                const canvasId = `deck-canvas-${user.userId}`;
+
+                const card = document.createElement('div');
+                card.className = `${bgStyle} rounded-2xl p-2.5 flex flex-col items-center justify-center relative overflow-hidden shadow-lg transition-all duration-300`;
+                card.innerHTML = `
+                    <div class="absolute top-1.5 left-2 flex items-center gap-1 text-[9px] font-bold ${colStyle} uppercase tracking-wider">
+                        <span class="${isSelf ? 'relative flex h-1.5 w-1.5' : 'w-1.5 h-1.5 rounded-full bg-emerald-500'}">
+                            ${isSelf ? '<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span><span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-indigo-500"></span>' : ''}
+                        </span>
+                        ${labelText}
+                    </div>
+                    <div class="w-16 h-16 sm:w-20 sm:h-20 bg-slate-950/90 rounded-full border border-slate-800/80 overflow-hidden mt-1 shadow-inner relative">
+                        <canvas id="${canvasId}" width="160" height="160" class="w-full h-full object-contain"></canvas>
+                    </div>
+                    <span class="text-[9px] font-semibold mt-1.5 bg-slate-800 border border-slate-700/60 text-slate-300 px-2 py-0.5 rounded-full">
+                        ${expressionEmoji[user.emotion || 'neutral'].split(' ')[0]} ${expressionEmoji[user.emotion || 'neutral'].split(' ')[1]}
+                    </span>
+                `;
+                deck.appendChild(card);
+            });
+        }
+
+        function renderDrawerParticipants() {
+            const realList = document.getElementById('drawer-real-user-list');
+            const botList = document.getElementById('drawer-bot-list');
+            
+            realList.innerHTML = '';
+            botList.innerHTML = '';
+
+            const humanUsers = activeUsers.filter(u => !u.isBot);
+            document.getElementById('active-user-count').innerText = `${humanUsers.length}명`;
+
+            humanUsers.forEach(u => {
+                const isSelf = u.userId === myUserId;
+                const row = document.createElement('div');
+                row.className = "flex items-center justify-between p-2 rounded-xl bg-slate-950/40 border border-slate-800/60";
+                row.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <div class="w-7 h-7 rounded-full bg-slate-950 border border-slate-800 overflow-hidden">
+                            <canvas id="drawer-real-canvas-${u.userId}" width="80" height="80" class="w-full h-full object-contain"></canvas>
+                        </div>
+                        <div>
+                            <span class="text-xs font-semibold text-slate-300 block max-w-[100px] truncate">${u.name}</span>
+                            <span class="text-[8px] text-slate-500 font-mono">${isSelf ? '내 디바이스' : 'ID: ' + u.userId.slice(0,5)}</span>
+                        </div>
+                    </div>
+                    <span class="text-[9px] ${isSelf ? 'text-indigo-400 bg-indigo-950/60 border border-indigo-900/40' : 'text-emerald-400 bg-emerald-950/60 border border-emerald-900/40'} px-2 py-0.5 rounded border font-bold">
+                        ${isSelf ? '방장' : '접속중'}
+                    </span>
+                `;
+                realList.appendChild(row);
+                
+                setTimeout(() => {
+                    const canvas = document.getElementById(`drawer-real-canvas-${u.userId}`);
+                    if (canvas) {
+                        const ctx = canvas.getContext('2d');
+                        const snapState = {
+                            blinkAmount: 0, mouthOpen: 0.1, mouthWidth: 0.4, eyebrowTilt: 0,
+                            emotion: u.emotion || 'neutral', rosyCheeks: false,
+                            faceColor: u.faceColor || '#FFE0B2', hairColor: '#1e293b'
+                        };
+                        updateAvatarTarget(snapState, snapState.emotion);
+                        drawAvatarInstance(ctx, canvas.width, canvas.height, snapState);
+                    }
+                }, 100);
+            });
+
+            Object.keys(bots).forEach(key => {
+                const b = bots[key];
+                const active = b.active;
+                const row = document.createElement('div');
+                row.className = "flex items-center justify-between p-2 rounded-xl bg-slate-950/40 border border-slate-800/60";
+                
+                const actionBtn = active 
+                    ? `<button onclick="window.toggleBotState('${key}', false)" class="text-[10px] bg-rose-950/80 hover:bg-rose-900 border border-rose-900/40 text-rose-300 px-2 py-1 rounded-lg transition active:scale-95">퇴장</button>`
+                    : `<button onclick="window.toggleBotState('${key}', true)" class="text-[10px] bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-900/40 text-emerald-300 px-2 py-1 rounded-lg transition active:scale-95">초대</button>`;
+                
+                row.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <div class="w-7 h-7 rounded-full bg-slate-950 border border-slate-800 overflow-hidden">
+                            <canvas id="drawer-bot-canvas-${key}" width="80" height="80" class="w-full h-full object-contain"></canvas>
+                        </div>
+                        <div>
+                            <span class="text-xs font-semibold text-slate-300">${b.name}</span>
+                            <span class="text-[8px] text-slate-500 block">AI 대화 응답 기기</span>
+                        </div>
+                    </div>
+                    <div>
+                        ${actionBtn}
+                    </div>
+                `;
+                botList.appendChild(row);
+
+                setTimeout(() => {
+                    const canvas = document.getElementById(`drawer-bot-canvas-${key}`);
+                    if (canvas) {
+                        const ctx = canvas.getContext('2d');
+                        const snapState = {
+                            blinkAmount: 0, mouthOpen: 0.1, mouthWidth: 0.4, eyebrowTilt: 0,
+                            emotion: b.emotion || 'neutral', rosyCheeks: false,
+                            faceColor: b.faceColor, hairColor: b.hairColor
+                        };
+                        updateAvatarTarget(snapState, snapState.emotion);
+                        drawAvatarInstance(ctx, canvas.width, canvas.height, snapState);
+                    }
+                }, 100);
+            });
+        }
+
+        window.toggleBotState = async function(botKey, state) {
+            bots[botKey].active = state;
+
+            if (isFirebaseActive && auth.currentUser) {
+                const botDocId = `${roomId}_bot_${botKey}`;
+                const botRef = doc(db, 'artifacts', appId, 'public', 'data', 'roomUsers', botDocId);
+                
+                if (state) {
+                    await setDoc(botRef, {
+                        userId: `bot_${botKey}`,
+                        roomId: roomId,
+                        name: bots[botKey].name,
+                        faceColor: bots[botKey].faceColor,
+                        emotion: bots[botKey].emotion,
+                        lastActive: Date.now(),
+                        isBot: true,
+                        hairColor: bots[botKey].hairColor
+                    });
+                    await postSystemMessage(`${bots[botKey].name}님이 대화방에 입장했습니다.`);
+                } else {
+                    await deleteDoc(botRef);
+                    await postSystemMessage(`${bots[botKey].name}님이 대화방을 나갔습니다.`);
+                }
+            } else {
+                if (state) {
+                    const exists = activeUsers.some(u => u.userId === botKey);
+                    if (!exists) {
+                        activeUsers.push({
+                            userId: botKey, name: bots[botKey].name, faceColor: bots[botKey].faceColor,
+                            emotion: bots[botKey].emotion, isBot: true, roomId: roomId, hairColor: bots[botKey].hairColor
+                        });
+                        appendSystemMessage(`${bots[botKey].name}님이 대화방에 입장했습니다.`);
+                    }
+                } else {
+                    activeUsers = activeUsers.filter(u => u.userId !== botKey);
+                    appendSystemMessage(`${bots[botKey].name}님이 대화방을 나갔습니다.`);
+                }
+                renderActivePresenceDeck();
+                renderDrawerParticipants();
+            }
+        };
+
+        function renderChatTimeline(messages) {
+            const feed = document.getElementById('chat-messages');
+            feed.innerHTML = `
+                <div class="flex justify-center my-2">
+                    <span class="bg-slate-800/40 text-slate-400 text-[10px] px-4 py-1.5 rounded-full font-medium">
+                        오늘
+                    </span>
+                </div>
+            `;
+
+            messages.forEach((msg) => {
+                if (msg.isSystem) {
+                    const msgWrapper = document.createElement('div');
+                    msgWrapper.className = "flex justify-center my-2";
+                    msgWrapper.innerHTML = `
+                        <span class="bg-slate-800/40 text-slate-400 text-[10px] px-4 py-1.5 rounded-full font-medium flex items-center gap-1.5">
+                            <i class="fa-solid fa-circle-exclamation text-[9px] text-indigo-400"></i> ${msg.text}
+                        </span>
+                    `;
+                    feed.appendChild(msgWrapper);
+                } else {
+                    const isSelf = msg.senderId === myUserId;
+                    const timeString = new Date(msg.timestamp).toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' });
+
+                    const uniqueCanvasId = `profile-canvas-${msg.timestamp}-${Math.floor(Math.random() * 100)}`;
+                    const emotionLabel = expressionEmoji[msg.emotion] ? expressionEmoji[msg.emotion].split(' ')[0] + ' ' + expressionEmoji[msg.emotion].split(' ')[1] : '😐 평온';
+
+                    let badgeBg = 'bg-slate-800 text-slate-300 border-slate-700/40';
+                    if (msg.emotion === 'happy') badgeBg = 'bg-emerald-950/60 text-emerald-300 border-emerald-800/40';
+                    else if (msg.emotion === 'sad') badgeBg = 'bg-blue-950/60 text-blue-300 border-blue-800/40';
+                    else if (msg.emotion === 'angry') badgeBg = 'bg-rose-950/60 text-rose-300 border-rose-800/40';
+                    else if (msg.emotion === 'surprised') badgeBg = 'bg-amber-950/60 text-amber-300 border-amber-800/40';
+
+                    const messageWrapper = document.createElement('div');
+                    messageWrapper.className = `flex items-start space-x-3 ${isSelf ? 'flex-row-reverse space-x-reverse' : ''}`;
+                    messageWrapper.innerHTML = `
+                        <div class="w-10 h-10 rounded-full bg-slate-950/90 border border-slate-800 overflow-hidden flex-shrink-0 relative shadow-inner">
+                            <canvas id="${uniqueCanvasId}" width="80" height="80" class="w-full h-full object-contain"></canvas>
+                        </div>
+                        <div class="space-y-1 max-w-[80%] ${isSelf ? 'text-right' : ''}">
+                            <div class="flex items-center space-x-2 ${isSelf ? 'flex-row-reverse space-x-reverse' : ''}">
+                                <span class="text-xs font-bold text-slate-300">${msg.senderName}</span>
+                                <span class="border px-2 py-0.5 rounded text-[10px] font-medium ${badgeBg}">${emotionLabel}</span>
+                                <span class="text-[10px] text-slate-500">${timeString}</span>
+                            </div>
+                            <div class="${isSelf ? 'bg-indigo-950/60 border border-indigo-800/40' : 'bg-slate-800/80 border border-slate-700/30'} rounded-2xl rounded-tr-none px-4 py-2.5 text-xs text-slate-200 shadow-sm text-left leading-relaxed">
+                                ${msg.text}
+                            </div>
+                        </div>
+                    `;
+                    feed.appendChild(messageWrapper);
+
+                    setTimeout(() => {
+                        const canvas = document.getElementById(uniqueCanvasId);
+                        if (canvas) {
+                            const pCtx = canvas.getContext('2d');
+                            const snapState = {
+                                blinkAmount: 0, mouthOpen: 0.1, mouthWidth: 0.4, eyebrowTilt: 0,
+                                emotion: msg.emotion, rosyCheeks: false,
+                                faceColor: msg.faceColor || '#FFE0B2', hairColor: msg.hairColor || '#1e293b'
+                            };
+                            updateAvatarTarget(snapState, msg.emotion);
+                            drawAvatarInstance(pCtx, canvas.width, canvas.height, snapState);
+                        }
+                    }, 100);
+                }
+            });
+
+            feed.scrollTo({ top: feed.scrollHeight, behavior: 'smooth' });
+        }
+
+        async function postSystemMessage(text) {
+            if (isFirebaseActive && auth.currentUser) {
+                const roomMessagesCollection = collection(db, 'artifacts', appId, 'public', 'data', 'roomMessages');
+                await addDoc(roomMessagesCollection, {
+                    roomId: roomId,
+                    isSystem: true,
+                    text: text,
+                    timestamp: Date.now()
+                });
+            }
+        }
+
+        function appendSystemMessage(text) {
+            const feed = document.getElementById('chat-messages');
+            const msg = document.createElement('div');
+            msg.className = "flex justify-center my-2";
+            msg.innerHTML = `
+                <span class="bg-slate-800/40 text-slate-400 text-[10px] px-4 py-1.5 rounded-full font-medium flex items-center gap-1.5">
+                    <i class="fa-solid fa-circle-exclamation text-[9px] text-indigo-400"></i> ${text}
+                </span>
+            `;
+            feed.appendChild(msg);
+            feed.scrollTo({ top: feed.scrollHeight, behavior: 'smooth' });
+        }
+
+        window.handleSendMessage = async function(event) {
+            event.preventDefault();
+            
+            const input = document.getElementById('chat-input');
+            const messageText = input.value.trim();
+            if (!messageText) return;
+
+            if (isFirebaseActive && auth.currentUser) {
+                try {
+                    const roomMessagesCollection = collection(db, 'artifacts', appId, 'public', 'data', 'roomMessages');
+                    await addDoc(roomMessagesCollection, {
+                        roomId: roomId,
+                        senderId: myUserId,
+                        senderName: myUsername,
+                        text: messageText,
+                        emotion: overrideEmotion,
+                        faceColor: faceColor,
+                        timestamp: Date.now(),
+                        isSystem: false,
+                        hairColor: '#1e293b'
+                    });
+
+                    const activeBots = Object.keys(bots).filter(key => bots[key].active);
+                    if (activeBots.length > 0) {
+                        setTimeout(async () => {
+                            if (!auth.currentUser) return;
+                            const luckyBotKey = activeBots[Math.floor(Math.random() * activeBots.length)];
+                            const botObj = bots[luckyBotKey];
+                            
+                            const responsePool = botReplies[luckyBotKey][overrideEmotion] || botReplies[luckyBotKey].neutral;
+                            const replyText = responsePool[Math.floor(Math.random() * responsePool.length)];
+
+                            await addDoc(roomMessagesCollection, {
+                                roomId: roomId,
+                                senderId: `bot_${luckyBotKey}`,
+                                senderName: botObj.name,
+                                text: replyText,
+                                emotion: overrideEmotion, 
+                                faceColor: botObj.faceColor,
+                                timestamp: Date.now() + 50,
+                                isSystem: false,
+                                hairColor: botObj.hairColor
+                            });
+
+                            const botDocId = `${roomId}_bot_${luckyBotKey}`;
+                            const botRef = doc(db, 'artifacts', appId, 'public', 'data', 'roomUsers', botDocId);
+                            
+                            // updateDoc 대신 setDoc({merge: true})를 사용하여 문서가 없을 때 발생하는 오류 방지
+                            await setDoc(botRef, { 
+                                userId: `bot_${luckyBotKey}`,
+                                roomId: roomId,
+                                name: botObj.name,
+                                faceColor: botObj.faceColor,
+                                emotion: overrideEmotion,
+                                lastActive: Date.now(),
+                                isBot: true,
+                                hairColor: botObj.hairColor
+                            }, { merge: true });
+
+                            setTimeout(async () => {
+                                if (!auth.currentUser) return;
+                                await setDoc(botRef, { emotion: luckyBotKey === 'seoyeon' ? 'happy' : 'neutral' }, { merge: true });
+                            }, 5000);
+
+                        }, 1200);
+                    }
+                } catch (e) {
+                }
+            } else {
+                const msgData = {
+                    senderId: myUserId, senderName: myUsername, text: messageText, emotion: overrideEmotion,
+                    faceColor: faceColor, timestamp: Date.now()
+                };
+                appendMessage(msgData);
+                
+                // 로컬 채널이 활성화되어 있다면 다른 탭으로 메시지 전송
+                if (window.localChannel) {
+                    window.localChannel.postMessage({
+                        type: 'CHAT_MESSAGE',
+                        message: msgData
+                    });
+                }
+
+                triggerLocalBotReply(messageText, overrideEmotion);
+            }
+
+            input.value = '';
+        };
+
+        function appendMessage({ senderId, senderName, text, emotion, faceColor, timestamp }) {
+            const feed = document.getElementById('chat-messages');
+            const isSelf = senderId === myUserId;
+            const timeString = new Date(timestamp).toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' });
+            
+            const uniqueCanvasId = `profile-canvas-${timestamp}-${Math.floor(Math.random() * 100)}`;
+            const emotionLabel = expressionEmoji[emotion] ? expressionEmoji[emotion].split(' ')[0] + ' ' + expressionEmoji[emotion].split(' ')[1] : '😐 평온';
+
+            let badgeBg = 'bg-slate-800 border-slate-700';
+            if (emotion === 'happy') badgeBg = 'bg-emerald-950/60 border-emerald-800/40 text-emerald-300';
+            else if (emotion === 'sad') badgeBg = 'bg-blue-950/60 border-blue-800/40 text-blue-300';
+            
+            const messageWrapper = document.createElement('div');
+            messageWrapper.className = `flex items-start space-x-3 ${isSelf ? 'flex-row-reverse space-x-reverse' : ''}`;
+            messageWrapper.innerHTML = `
+                <div class="w-10 h-10 rounded-full bg-slate-950 border border-slate-800 overflow-hidden flex-shrink-0 relative">
+                    <canvas id="${uniqueCanvasId}" width="80" height="80" class="w-full h-full object-contain"></canvas>
+                </div>
+                <div class="space-y-1 max-w-[80%] ${isSelf ? 'text-right' : ''}">
+                    <div class="flex items-center space-x-2 ${isSelf ? 'flex-row-reverse space-x-reverse' : ''}">
+                        <span class="text-xs font-bold text-slate-300">${senderName}</span>
+                        <span class="border px-2 py-0.5 rounded text-[10px] font-medium ${badgeBg}">${emotionLabel}</span>
+                        <span class="text-[10px] text-slate-500">${timeString}</span>
+                    </div>
+                    <div class="${isSelf ? 'bg-indigo-950/60 border border-indigo-800/40' : 'bg-slate-800/80 border border-slate-700/30'} rounded-2xl rounded-tr-none px-4 py-2.5 text-xs text-slate-200 shadow-sm text-left leading-relaxed">
+                        ${text}
+                    </div>
+                </div>
+            `;
+            feed.appendChild(messageWrapper);
+
+            setTimeout(() => {
+                const canvas = document.getElementById(uniqueCanvasId);
+                if (canvas) {
+                    const ctx = canvas.getContext('2d');
+                    const snap = {
+                        blinkAmount: 0, mouthOpen: 0.1, mouthWidth: 0.4, eyebrowTilt: 0, emotion: emotion,
+                        rosyCheeks: false, faceColor: faceColor, hairColor: '#1e293b'
+                    };
+                    updateAvatarTarget(snap, emotion);
+                    drawAvatarInstance(ctx, canvas.width, canvas.height, snap);
+                }
+            }, 100);
+
+            feed.scrollTo({ top: feed.scrollHeight, behavior: 'smooth' });
+        }
+
+        function triggerLocalBotReply(userMsg, userEmotion) {
+            const activeBots = Object.keys(bots).filter(key => bots[key].active);
+            if (activeBots.length === 0) return;
+
+            setTimeout(() => {
+                const botKey = activeBots[Math.floor(Math.random() * activeBots.length)];
+                const botObj = bots[botKey];
+                const pool = botReplies[botKey][userEmotion] || botReplies[botKey].neutral;
+                const replyText = pool[Math.floor(Math.random() * pool.length)];
+
+                appendMessage({
+                    senderId: botKey, senderName: botObj.name, text: replyText, emotion: userEmotion,
+                    faceColor: botObj.faceColor, timestamp: Date.now()
+                });
+            }, 1200);
+        }
+
+        window.toggleDrawer = function() {
+            const drawer = document.getElementById('chat-drawer');
+            const backdrop = document.getElementById('drawer-backdrop');
+            if (isDrawerOpen) {
+                drawer.classList.add('translate-x-full');
+                backdrop.classList.add('hidden');
+                isDrawerOpen = false;
+            } else {
+                drawer.classList.remove('translate-x-full');
+                backdrop.classList.remove('hidden');
+                renderDrawerParticipants();
+                isDrawerOpen = true;
+            }
+        };
+
+        window.openInviteModal = function() {
+            document.getElementById('invite-room-code').value = roomId;
+            
+            // 접속을 위한 전체 URL 생성 (Cross-origin iframe 지원을 위해 안전하게 탐색)
+            let baseUrl = "";
+            try {
+                if (window.top !== window.self && document.referrer) {
+                    baseUrl = document.referrer.split('?')[0].split('#')[0];
+                } else {
+                    baseUrl = window.location.href.split('?')[0].split('#')[0];
+                }
+            } catch (e) {
+                baseUrl = window.location.href.split('?')[0].split('#')[0];
+            }
+            
+            // 폴백 처리
+            if (!baseUrl) {
+                 baseUrl = window.location.href.split('?')[0].split('#')[0];
+            }
+            
+            const inviteUrl = baseUrl + '?room=' + roomId;
+            
+            // 링크 입력창에 전체 주소 세팅
+            document.getElementById('invite-full-link').value = inviteUrl;
+            
+            const statusMsg = document.getElementById('copy-status-message');
+            if (statusMsg) statusMsg.innerText = ""; 
+            
+            // QR 코드 초기화 및 생성
+            const qrContainer = document.getElementById('qrcode-container');
+            if (qrContainer) {
+                qrContainer.innerHTML = ''; 
+                
+                // QRCode.js를 이용해 전체 URL 접속 링크로 QR 렌더링
+                new QRCode(qrContainer, {
+                    text: inviteUrl,
+                    width: 140,
+                    height: 140,
+                    colorDark : "#0f172a", 
+                    colorLight : "#ffffff",
+                    correctLevel : QRCode.CorrectLevel.M
+                });
+            }
+            
+            window.toggleModal('invite-modal');
+        };
+
+        window.copyRoomCode = async function() {
+            const input = document.getElementById('invite-room-code');
+            await copyTextToClipboard(input, "✓ 방 코드가 클립보드에 복사되었습니다!");
+        };
+
+        // 전체 접속 링크 복사 함수
+        window.copyFullLink = async function() {
+            const input = document.getElementById('invite-full-link');
+            await copyTextToClipboard(input, "✓ 바로 접속 링크가 클립보드에 복사되었습니다!");
+        };
+
+        async function copyTextToClipboard(inputElement, successMsg, isSilent = false) {
+            const statusMessage = document.getElementById('copy-status-message');
+            
+            inputElement.focus();
+            inputElement.select();
+            inputElement.setSelectionRange(0, 99999); 
+            
+            let copied = false;
+            try { copied = document.execCommand('copy'); } catch (e) {}
+            
+            if (!copied && navigator.clipboard && window.isSecureContext) {
+                try {
+                    await navigator.clipboard.writeText(inputElement.value);
+                    copied = true;
+                } catch (e) {}
+            }
+            
+            if (copied) {
+                statusMessage.className = "text-[11px] text-emerald-400 font-bold block mt-2";
+                statusMessage.innerText = successMsg;
+            } else {
+                if (!isSilent) {
+                    statusMessage.className = "text-[11px] text-amber-500 font-semibold block mt-2";
+                    statusMessage.innerText = "⚠️ 복사가 차단되었습니다. 직접 텍스트를 복사해주세요.";
+                }
+            }
+        }
+
+        window.toggleModal = function(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.toggle('hidden');
+        };
+    </script>
+</body>
+</html>
