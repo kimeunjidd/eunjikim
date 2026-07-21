@@ -40,9 +40,13 @@
         </div>
         
         <div class="flex items-center space-x-3">
+            <button onclick="window.leaveRoom()" class="bg-rose-950/80 border border-rose-800/60 hover:bg-rose-900 text-rose-300 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 active:scale-95 transition shadow-sm">
+                <i class="fa-solid fa-arrow-right-from-bracket text-[10px]"></i>
+                <span class="hidden sm:inline">방 나가기</span>
+            </button>
             <button onclick="window.openInviteModal()" class="bg-emerald-600/90 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 active:scale-95 transition shadow-lg shadow-emerald-500/20">
                 <i class="fa-solid fa-key text-[10px]"></i>
-                <span>초대 코드 확인</span>
+                <span class="hidden sm:inline">초대 코드</span>
             </button>
             
             <div id="ai-status-badge" class="flex items-center space-x-2 bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700 text-xs transition-colors duration-300">
@@ -316,6 +320,8 @@
         let dynamicUserStates = {}; 
         let chatMessages = []; // 로컬 채팅 메시지 저장소
 
+        let localChannel = null; // Canvas 프리뷰 차단 방지용 로컬 통신 채널
+
         let video, cameraToggle, cameraPlaceholder, trackingBracket, trackingLabel, currentExpressionBadge, senderEmotionIndicator, aiTrackingMicroIndicator;
 
         const expressionEmoji = { neutral: '😐 평온', happy: '😊 기쁨', sad: '😢 슬픔', angry: '😡 화남', surprised: '😲 놀람' };
@@ -386,39 +392,12 @@
             const badge = document.getElementById('ai-status-badge');
             aiStatusText.innerText = "공용 네트워크 접속 중...";
 
-            // 브라우저용 MQTT 라이브러리 사용 (HiveMQ Public Broker)
-            const brokerUrl = 'wss://broker.hivemq.com:8884/mqtt';
             const topic = `sympathlink/room/${roomId}`;
-            
-            mqttClient = mqtt.connect(brokerUrl);
 
-            mqttClient.on('connect', () => {
-                isMqttConnected = true;
-                aiStatusText.innerText = "온라인 접속됨 (서버리스)";
-                badge.classList.replace('bg-slate-800', 'bg-emerald-950/60');
-                badge.classList.add('border-emerald-800/40');
-                badge.querySelector('span').classList.replace('bg-amber-500', 'bg-emerald-500');
-
-                // 방 입장 (구독)
-                mqttClient.subscribe(topic);
-
-                // 방에 들어왔음을 알리고 지속적으로 생존 신고(하트비트) 발송
-                setInterval(() => {
-                    const payload = {
-                        type: 'PRESENCE_UPDATE',
-                        user: { userId: myUserId, name: myUsername, faceColor: faceColor, emotion: overrideEmotion, timestamp: Date.now() }
-                    };
-                    mqttClient.publish(topic, JSON.stringify(payload));
-                }, 3000);
-            });
-
-            // 메시지 수신 처리
-            mqttClient.on('message', (receivedTopic, message) => {
+            // 수신된 데이터를 처리하는 공통 함수
+            const handleNetworkMessage = (data) => {
                 try {
-                    const data = JSON.parse(message.toString());
-                    
                     if (data.type === 'PRESENCE_UPDATE') {
-                        // 다른 유저의 상태 업데이트 수신
                         if(data.user.userId === myUserId) return; // 내 메시지는 무시
                         
                         const existingUser = activeUsers.find(u => u.userId === data.user.userId);
@@ -432,7 +411,7 @@
                         renderActivePresenceDeck();
                         renderDrawerParticipants();
                     } else if (data.type === 'CHAT_MESSAGE') {
-                        // 채팅 메시지 수신
+                        if (data.message.senderId === myUserId) return;
                         chatMessages.push(data.message);
                         chatMessages.sort((a, b) => a.timestamp - b.timestamp);
                         renderChatTimeline();
@@ -440,7 +419,60 @@
                 } catch (e) {
                     console.error("데이터 파싱 에러", e);
                 }
-            });
+            };
+
+            // 네트워크 연결 성공 시 공통 처리 함수
+            const onConnectSuccess = (isLocal = false) => {
+                isMqttConnected = true;
+                aiStatusText.innerText = isLocal ? "미리보기 전용 (로컬 접속됨)" : "온라인 접속됨 (서버리스)";
+                badge.classList.replace('bg-slate-800', isLocal ? 'bg-indigo-950/60' : 'bg-emerald-950/60');
+                badge.classList.add(isLocal ? 'border-indigo-800/40' : 'border-emerald-800/40');
+                badge.querySelector('span').classList.replace('bg-amber-500', isLocal ? 'bg-indigo-500' : 'bg-emerald-500');
+
+                // 방에 들어왔음을 알리고 지속적으로 생존 신고 발송
+                setInterval(() => {
+                    if (!isMqttConnected) return;
+                    const payload = {
+                        type: 'PRESENCE_UPDATE',
+                        user: { userId: myUserId, name: myUsername, faceColor: faceColor, emotion: overrideEmotion, timestamp: Date.now() }
+                    };
+                    
+                    if (isLocal && localChannel) {
+                        localChannel.postMessage(payload);
+                    } else if (mqttClient) {
+                        mqttClient.publish(topic, JSON.stringify(payload));
+                    }
+                }, 3000);
+            };
+
+            try {
+                // 브라우저용 MQTT 라이브러리 사용 (EMQX Public Broker로 변경하여 안정성 향상)
+                const brokerUrl = 'wss://broker.emqx.io:8084/mqtt';
+                mqttClient = mqtt.connect(brokerUrl);
+
+                mqttClient.on('connect', () => {
+                    onConnectSuccess(false);
+                    mqttClient.subscribe(topic); // 방 구독
+                });
+
+                mqttClient.on('message', (receivedTopic, message) => {
+                    handleNetworkMessage(JSON.parse(message.toString()));
+                });
+                
+                mqttClient.on('error', (err) => {
+                    console.warn("MQTT 접속 에러:", err);
+                });
+
+            } catch (error) {
+                // SecurityError (미리보기 화면의 WebSocket 차단 정책) 우회 처리
+                console.warn("Canvas 미리보기 환경의 보안 정책으로 외부 서버 접속이 차단되었습니다. 로컬 테스트 모드로 전환합니다.", error);
+                
+                // 브라우저 탭 간 통신 API로 대체 (Netlify 배포 시에는 이 코드가 실행되지 않고 정상 MQTT 통신됨)
+                localChannel = new BroadcastChannel(topic);
+                localChannel.onmessage = (event) => handleNetworkMessage(event.data);
+                
+                setTimeout(() => onConnectSuccess(true), 300);
+            }
 
             // 오랫동안 응답 없는 유저 자동 퇴장 처리 (가비지 컬렉션)
             setInterval(() => {
@@ -769,8 +801,15 @@
             const msgData = { roomId: roomId, senderId: myUserId, senderName: myUsername, text: text, emotion: overrideEmotion, faceColor: faceColor, timestamp: Date.now() };
 
             if (isMqttConnected) {
-                // 메시지를 퍼블릭 네트워크에 발송
-                mqttClient.publish(`sympathlink/room/${roomId}`, JSON.stringify({ type: 'CHAT_MESSAGE', message: msgData }));
+                const payload = { type: 'CHAT_MESSAGE', message: msgData };
+                
+                if (mqttClient && mqttClient.connected) {
+                    // 실시간 서버(MQTT)로 발송
+                    mqttClient.publish(`sympathlink/room/${roomId}`, JSON.stringify(payload));
+                } else if (localChannel) {
+                    // 미리보기 화면용 로컬 발송
+                    localChannel.postMessage(payload);
+                }
             }
             
             // 내 화면에 바로 표시
@@ -778,6 +817,43 @@
             renderChatTimeline();
             
             input.value = '';
+        };
+
+        window.leaveRoom = function() {
+            // 1. 공용 네트워크(MQTT) 및 로컬 채널 연결 강제 종료
+            if (mqttClient) {
+                mqttClient.end(true); 
+                mqttClient = null;
+            }
+            if (localChannel) {
+                localChannel.close();
+                localChannel = null;
+            }
+            isMqttConnected = false;
+            
+            // 2. 내부 데이터 초기화
+            activeUsers = [];
+            chatMessages = [];
+            dynamicUserStates = {};
+            
+            // 3. 채팅방 및 캔버스 화면 비우기
+            document.getElementById('chat-messages').innerHTML = '';
+            document.getElementById('presence-deck').innerHTML = '';
+            document.getElementById('drawer-real-user-list').innerHTML = '';
+            document.getElementById('active-user-count').innerText = '0명';
+            document.getElementById('room-id-badge').innerText = `ROOM: -`;
+            
+            // 4. 상태 뱃지를 연결 전(로컬 시뮬레이터)으로 되돌리기
+            const aiStatusText = document.getElementById('ai-status-text');
+            const badge = document.getElementById('ai-status-badge');
+            aiStatusText.innerText = "로컬 시뮬레이터 (서버 연결 전)";
+            badge.classList.replace('bg-emerald-950/60', 'bg-slate-800');
+            badge.classList.remove('border-emerald-800/40');
+            badge.querySelector('span').classList.replace('bg-emerald-500', 'bg-amber-500');
+
+            // 5. URL에서 방 코드를 지우고 초기 접속 화면(모달) 다시 띄우기
+            try { window.history.replaceState({}, '', window.location.pathname); } catch (e) {}
+            document.getElementById('onboarding-modal').classList.remove('hidden');
         };
 
         window.toggleDrawer = function() {
